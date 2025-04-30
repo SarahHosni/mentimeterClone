@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "44011533978",
+    "project_id": "mentimeterclone-d624e",
+    "storage_bucket": "mentimeterclone-d624e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44011533978:android:ebf11b8629b7a2c6fb1123",
+        "android_client_info": {
+          "package_name": "com.example.admin_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOJGbdZcA9_a8mR3yNAV-ZgYvX7r6hTEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44011533978:android:e380c874733172eafb1123",
+        "android_client_info": {
+          "package_name": "com.example.participant_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOJGbdZcA9_a8mR3yNAV-ZgYvX7r6hTEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
