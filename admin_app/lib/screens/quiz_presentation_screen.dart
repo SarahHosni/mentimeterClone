@@ -32,6 +32,7 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
   int _currentQuestionIndex = 0; // Track the current question index
   Map<int, int> _results = {}; // To store results for the current question
   bool _isTimerRunning = false; // To track if the timer is running
+  int _remainingTime = 0; // Remaining time for the current question
   Timer? _timer; // Timer to manage question duration
 
   @override
@@ -83,20 +84,43 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     });
 
     // Update Firebase to indicate that the quiz has started
-    sessionRef.update({'quizStarted': true, 'currentQuestionIndex': _currentQuestionIndex});
+    sessionRef.update({
+      'quizStarted': true,
+      'currentQuestionIndex': _currentQuestionIndex,
+      'timerState': {'isRunning': true, 'remainingTime': _remainingTime},
+    });
   }
 
   // Start the timer for the current question
   void _startTimer() {
     final questionDuration = widget.quiz.questions[_currentQuestionIndex].duration ?? 30; // Default 30 seconds
     setState(() {
+      _remainingTime = questionDuration;
       _isTimerRunning = true;
     });
 
-    _timer = Timer(Duration(seconds: questionDuration), () {
+    // Update Firebase with initial timer state
+    sessionRef.update({
+      'timerState': {'isRunning': true, 'remainingTime': _remainingTime},
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        _isTimerRunning = false; // Timer finished
-        _loadResults(); // Load results after timer ends
+        if (_remainingTime > 0) {
+          _remainingTime--;
+          // Update Firebase with the remaining time every second
+          sessionRef.update({
+            'timerState': {'isRunning': true, 'remainingTime': _remainingTime},
+          });
+        } else {
+          _timer?.cancel();
+          _isTimerRunning = false;
+          // Update Firebase when the timer ends
+          sessionRef.update({
+            'timerState': {'isRunning': false, 'remainingTime': 0},
+          });
+          _loadResults(); // Load results after timer ends
+        }
       });
     });
   }
@@ -134,7 +158,10 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
       });
 
       // Update the current question index in Firebase for sync with participants
-      sessionRef.update({'currentQuestionIndex': _currentQuestionIndex});
+      sessionRef.update({
+        'currentQuestionIndex': _currentQuestionIndex,
+        'timerState': {'isRunning': false, 'remainingTime': 0}, // Reset timer state
+      });
 
       // Start the timer for the new question
       _startTimer();
@@ -151,7 +178,10 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
       });
 
       // Update the current question index in Firebase for sync with participants
-      sessionRef.update({'currentQuestionIndex': _currentQuestionIndex});
+      sessionRef.update({
+        'currentQuestionIndex': _currentQuestionIndex,
+        'timerState': {'isRunning': false, 'remainingTime': 0}, // Reset timer state
+      });
     }
   }
 
@@ -222,7 +252,7 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
               SizedBox(height: 20),
               if (_isTimerRunning)
                 Text(
-                  'Time remaining: ${widget.quiz.questions[_currentQuestionIndex].duration}s',
+                  'Time remaining: $_remainingTime seconds',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 )
               else if (_results.isNotEmpty) ...[

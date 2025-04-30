@@ -1,12 +1,10 @@
-import 'package:firebase_database/firebase_database.dart';
-
 class ScoreService {
-  final DatabaseReference participantsRef;
-
-  ScoreService({required this.participantsRef});
-
-  /// Calculates a score based on correctness and remaining time.
-  ///
+  /// Calculates score based on correctness and time.
+  /// 
+  /// [isCorrect] - whether the answer is correct.
+  /// [remainingTime] - how much time was left when the answer was given.
+  /// [maxTime] - the total time allowed for the question.
+  /// 
   /// Returns a score between 0 and 100.
   static int calculateScore({
     required bool isCorrect,
@@ -17,34 +15,14 @@ class ScoreService {
       return 0;
     }
 
+    // Score is proportional to the time remaining.
     double timeRatio = remainingTime / maxTime;
     int score = (timeRatio * 100).round();
 
-    return score.clamp(0, 100);
+    return score.clamp(0, 100); // Ensure score is between 0 and 100
   }
 
-  /// Fetches participants and returns them sorted by descending score.
-  Future<List<Map<String, dynamic>>> fetchAndRankParticipants() async {
-    final snapshot = await participantsRef.get();
-
-    if (!snapshot.exists) return [];
-
-    final participantsMap = Map<String, dynamic>.from(snapshot.value as Map);
-
-    final rankedParticipants = participantsMap.entries.map((entry) {
-      final data = Map<String, dynamic>.from(entry.value);
-      return {
-        'id': entry.key,
-        'nickname': data['nickname'] ?? 'Unnamed',
-        'score': (data['score'] ?? 0) is int
-            ? data['score']
-            : int.tryParse(data['score'].toString()) ?? 0,
-      };
-    }).toList();
-
-    rankedParticipants.sort(
-        (a, b) => (b['score'] as int).compareTo(a['score'] as int));
-
-    return rankedParticipants;
-  }
+  
 }
+
+
