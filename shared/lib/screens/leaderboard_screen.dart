@@ -104,8 +104,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with TickerProvid
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text("Leaderboard", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.deepPurple,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.purple.shade300],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          'LeaderBoard',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())

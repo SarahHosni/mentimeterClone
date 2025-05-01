@@ -24,7 +24,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     app: Firebase.app(),
     databaseURL: 'https://mentimeterclone-d624e-default-rtdb.firebaseio.com',
   );
-
   late DatabaseReference participantsRef;
   late DatabaseReference sessionRef;
   late DatabaseReference responsesRef;
@@ -44,7 +43,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     participantsRef = database.ref('sessions/${widget.sessionId}/participants');
     sessionRef = database.ref('sessions/${widget.sessionId}');
     responsesRef = database.ref('sessions/${widget.sessionId}/responses');
-
     participantsRef.onChildAdded.listen(_onParticipantAdded);
     participantsRef.onChildRemoved.listen(_onParticipantRemoved);
     sessionRef.onDisconnect().remove();
@@ -78,7 +76,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
       _isQuizStarted = true;
       _startTimer();
     });
-
     sessionRef.update({
       'quizStarted': true,
       'currentQuestionIndex': _currentQuestionIndex,
@@ -92,11 +89,9 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
       _remainingTime = questionDuration;
       _isTimerRunning = true;
     });
-
     sessionRef.update({
       'timerState': {'isRunning': true, 'remainingTime': _remainingTime},
     });
-
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         if (_remainingTime > 0) {
@@ -120,17 +115,13 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
   Future<void> _loadResults() async {
     final questionKey = 'question_$_currentQuestionIndex';
     final snapshot = await responsesRef.child(questionKey).get();
-
     if (snapshot.exists) {
       final responses = Map<String, dynamic>.from(snapshot.value as Map);
       final optionCounts = <int, int>{};
-
       final currentOptions = widget.quiz.questions[_currentQuestionIndex].options;
-
       for (int i = 0; i < currentOptions.length; i++) {
         optionCounts[i] = 0;
       }
-
       responses.forEach((_, answerText) {
         if (answerText is String) {
           int index = currentOptions.indexOf(answerText);
@@ -139,7 +130,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
           }
         }
       });
-
       setState(() {
         _results = optionCounts;
       });
@@ -150,17 +140,12 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     setState(() {
       _showingResults = true;
     });
-
     await _loadResults();
-
     await Future.delayed(Duration(seconds: 3));
-
     final isLastQuestion = _currentQuestionIndex >= widget.quiz.questions.length - 1;
-
     if (isLastQuestion) {
       // Mark quiz as ended
       await sessionRef.update({'quizEnded': true});
-
       // Navigate to leaderboard
       if (mounted) {
         Navigator.pushReplacement(
@@ -178,12 +163,10 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
         _isTimerRunning = false;
         _showingResults = false;
       });
-
       sessionRef.update({
         'currentQuestionIndex': _currentQuestionIndex,
         'timerState': {'isRunning': false, 'remainingTime': 0},
       });
-
       _startTimer();
     }
   }
@@ -196,7 +179,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
         _isTimerRunning = false;
         _showingResults = false;
       });
-
       sessionRef.update({
         'currentQuestionIndex': _currentQuestionIndex,
         'timerState': {'isRunning': false, 'remainingTime': 0},
@@ -213,13 +195,28 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
+
     final currentQuestion = widget.quiz.questions.isEmpty
         ? null
         : widget.quiz.questions[_currentQuestionIndex];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quiz Presentation'),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.purple.shade300],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          'Quiz Presentation',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.stop_circle_outlined),
@@ -246,132 +243,226 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (!_isQuizStarted) ...[
-              Text(
-                'Waiting for players...',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.deepPurple.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Progress Indicator
+              LinearProgressIndicator(
+                value: (_currentQuestionIndex + 1) / widget.quiz.questions.length,
+                backgroundColor: Colors.grey[300],
+                color: Colors.deepPurple,
+                minHeight: 8,
               ),
-              SizedBox(height: 10),
-              Expanded(
-                child: participants.isEmpty
-                    ? Center(child: Text('No participants yet'))
-                    : ListView.builder(
-                        itemCount: participants.length,
-                        itemBuilder: (context, index) {
-                          final participant = participants[index];
-                          final nickname = participant['nickname'] ?? 'Unnamed';
-                          return ListTile(
-                            leading: CircleAvatar(child: Text('${index + 1}')),
-                            title: Text(nickname),
-                          );
-                        },
-                      ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _startQuiz,
-                child: Text('Start Quiz'),
-              ),
-            ] else ...[
-              Text(
-                'Question ${_currentQuestionIndex + 1}/${widget.quiz.questions.length}',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      if (!_showingResults) ...[
-                        Text(
-                          currentQuestion?.questionText ?? 'No question available',
-                          style: TextStyle(fontSize: 24),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 20),
-                        Column(
-                          children: currentQuestion?.options.map((option) {
-                                return Container(
-                                  width: 300,
-                                  margin: EdgeInsets.symmetric(vertical: 8),
-                                  padding: EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueGrey[50],
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.blueGrey),
-                                  ),
-                                  child: Text(option, style: TextStyle(fontSize: 18)),
-                                );
-                              }).toList() ??
-                              [],
-                        ),
-                      ] else if (_results.isNotEmpty) ...[
-                        Text(
-                          'Results:',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 10),
-                        ..._results.entries.map((entry) {
-                          final optionIndex = entry.key;
-                          final count = entry.value;
-                          final totalVotes = _results.values.fold(0, (a, b) => a + b);
-                          final percentage = totalVotes == 0 ? 0.0 : (count / totalVotes);
+              SizedBox(height: 16),
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currentQuestion!.options[optionIndex],
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                              SizedBox(height: 6),
-                              LinearProgressIndicator(
-                                value: percentage,
-                                minHeight: 14,
-                                backgroundColor: Colors.grey[300],
-                                color: Colors.blueAccent,
-                              ),
-                              SizedBox(height: 4),
-                              Text('$count votes (${(percentage * 100).toStringAsFixed(1)}%)'),
-                              SizedBox(height: 12),
-                            ],
-                          );
-                        }),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              if (_isTimerRunning)
+              if (!_isQuizStarted) ...[
                 Text(
-                  'Time remaining: $_remainingTime seconds',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  'Waiting for players...',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
                 ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentQuestionIndex > 0 ? _goToPreviousQuestion : null,
-                    child: Text("Previous"),
+                SizedBox(height: 10),
+                Expanded(
+                  child: participants.isEmpty
+                      ? Center(child: Text('No participants yet'))
+                      : ListView.builder(
+                          itemCount: participants.length,
+                          itemBuilder: (context, index) {
+                            final participant = participants[index];
+                            final nickname = participant['nickname'] ?? 'Unnamed';
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.deepPurple,
+                                child: Text('${index + 1}'),
+                              ),
+                              title: Text(nickname),
+                            );
+                          },
+                        ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _startQuiz,
+                  child: Text('Start Quiz', style: TextStyle(color:Colors.white,)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                    textStyle: TextStyle(fontSize: 18),
                   ),
-                  SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: !_isTimerRunning &&
-                            _showingResults &&
-                            _currentQuestionIndex < widget.quiz.questions.length
-                        ? _goToNextQuestion
-                        : null,
-                    child: Text("Next"),
+                ),
+              ] else ...[
+                Text(
+                  'Question ${_currentQuestionIndex + 1}/${widget.quiz.questions.length}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: 20),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        if (!_showingResults) ...[
+                          Card(
+                            elevation: 6,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentQuestion?.questionText ?? 'No question available',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.deepPurple,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: 20),
+                                  Column(
+                                    children: currentQuestion?.options.map((option) {
+                                          return Container(
+                                            width: 1100,
+                                            height:55,
+                                            margin: EdgeInsets.symmetric(vertical: 8),
+                                            padding: EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(255, 240, 237, 245),
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: Colors.deepPurple),
+                                            ),
+                                            child: Text(
+                                              option,
+                                              style: TextStyle(fontSize: 18),
+                                            ),
+                                          );
+                                        }).toList() ??
+                                        [],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ] else if (_results.isNotEmpty) ...[
+                          Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Results:',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.deepPurple,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  ..._results.entries.map((entry) {
+                                    final optionIndex = entry.key;
+                                    final count = entry.value;
+                                    final totalVotes =
+                                        _results.values.fold(0, (a, b) => a + b);
+                                    final percentage =
+                                        totalVotes == 0 ? 0.0 : (count / totalVotes);
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          currentQuestion!.options[optionIndex],
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        ),
+                                        SizedBox(height: 6),
+                                        LinearProgressIndicator(
+                                          value: percentage,
+                                          minHeight: 14,
+                                          backgroundColor: Colors.grey[300],
+                                          color: Colors.deepPurple,
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          '$count votes (${(percentage * 100).toStringAsFixed(1)}%)',
+                                          style: TextStyle(color: Colors.deepPurple),
+                                        ),
+                                        SizedBox(height: 12),
+                                      ],
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                if (_isTimerRunning)
+                  Text(
+                    'Time remaining: $_remainingTime seconds',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _currentQuestionIndex > 0 ? _goToPreviousQuestion : null,
+                      child: Text("Previous", style: TextStyle(color:Colors.white,)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                      ),
+                    ),
+                    SizedBox(width: 20),
+                    ElevatedButton(
+                      onPressed: !_isTimerRunning &&
+                              _showingResults &&
+                              _currentQuestionIndex < widget.quiz.questions.length
+                          ? _goToNextQuestion
+                          : null,
+                      child: Text("Next" ,style: TextStyle(color:Colors.white,)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

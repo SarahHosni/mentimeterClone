@@ -15,19 +15,30 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.grey[400],
-      title: Text(title, style: TextStyle(color: Colors.black)),
+      backgroundColor: Colors.deepPurple,
+      elevation: 4,
+      automaticallyImplyLeading: false,
       leading: arrow
           ? IconButton(
-              icon: Icon(Icons.arrow_back, color: const Color.fromARGB(255, 3, 3, 3)),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              tooltip: 'Back',
               onPressed: () {
                 Navigator.pushNamed(context, '/dashboard');
               },
             )
-          : null, // No arrow if arrow == false
+          : null,
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       actions: [
         IconButton(
-          icon: Icon(Icons.exit_to_app, color: const Color.fromARGB(255, 0, 0, 0)),
+          icon: const Icon(Icons.logout, color: Colors.white),
+          tooltip: 'Logout',
           onPressed: onLogout,
         ),
       ],
@@ -35,5 +46,5 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

@@ -35,7 +35,8 @@ class MyApp extends StatelessWidget {
         '/register': (context) => Register(),
         '/dashboard': (context) => DashboardScreen(),
         '/create-quiz': (context) => CreateQuizScreen(),
-        '/quiz-details': (context) => QuizDetailScreen(quiz: ModalRoute.of(context)!.settings.arguments as QuizModel),
+        '/quiz-details': (context) => QuizDetailScreen(quizId: ModalRoute.of(context)!.settings.arguments as String),
+
         
   '/presentation': (context) {
   final args = ModalRoute.of(context)?.settings.arguments as Map?;

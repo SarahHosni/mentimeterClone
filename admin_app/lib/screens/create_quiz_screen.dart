@@ -106,28 +106,52 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Question ${index + 1}", style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
+            Text(
+              "Question ${index + 1}",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.deepPurple),
+            ),
+            SizedBox(height: 12),
             TextField(
               controller: questionController,
-              decoration: InputDecoration(labelText: 'Question Text'),
+              decoration: InputDecoration(
+                labelText: 'Question Text',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
               onChanged: (value) => question.questionText = value,
             ),
+            SizedBox(height: 12),
             ...List.generate(4, (i) {
-              return TextField(
-                decoration: InputDecoration(labelText: 'Option ${i + 1}'),
-                onChanged: (value) => question.options[i] = value,
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Option ${i + 1}',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  ),
+                  onChanged: (value) => question.options[i] = value,
+                ),
               );
             }),
-            SizedBox(height: 10),
+            SizedBox(height: 12),
             DropdownButtonFormField<int>(
               value: question.correctAnswerIndex,
-              decoration: InputDecoration(labelText: 'Correct Answer'),
+              decoration: InputDecoration(
+                labelText: 'Correct Answer',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
               items: List.generate(4, (i) {
                 return DropdownMenuItem(value: i, child: Text('Option ${i + 1}'));
               }),
@@ -139,11 +163,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                 }
               },
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 12),
             TextField(
               controller: TextEditingController(text: question.duration.toString()),
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Duration (seconds)'),
+              decoration: InputDecoration(
+                labelText: 'Duration (seconds)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
               onChanged: (value) {
                 final duration = int.tryParse(value);
                 if (duration != null) {
@@ -163,44 +191,62 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
       appBar: CustomAppBar(
         title: widget.quiz == null ? 'Create Quiz' : 'Edit Quiz',
         onLogout: _auth.signOut,
-        arrow: true
+        arrow: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            Text('Quiz Details', style: Theme.of(context).textTheme.titleLarge),
+            Text('Quiz Details', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple)),
             SizedBox(height: 10),
             TextField(
               controller: _titleController,
-              decoration: InputDecoration(labelText: 'Quiz Title'),
+              decoration: InputDecoration(
+                labelText: 'Quiz Title',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
             ),
             SizedBox(height: 10),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Quiz Description'),
+              decoration: InputDecoration(
+                labelText: 'Quiz Description',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
             ),
             SizedBox(height: 20),
-            Text('Questions', style: Theme.of(context).textTheme.titleLarge),
+            Text('Questions', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple)),
+            SizedBox(height: 10),
             ..._questions.asMap().entries.map(
                   (entry) => _buildQuestionCard(entry.key, entry.value),
                 ),
-            TextButton.icon(
-              onPressed: _addQuestion,
-              icon: Icon(Icons.add),
-              label: Text('Add Question'),
+            Center(
+              child: TextButton.icon(
+                onPressed: _addQuestion,
+                icon: Icon(Icons.add, color: Colors.white),
+                label: Text('Add Question', style: TextStyle(color: Colors.white)),
+                style: TextButton.styleFrom(backgroundColor: Colors.deepPurple, padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8)),
+              ),
             ),
             SizedBox(height: 10),
             if (_errorMessage.isNotEmpty)
               Text(_errorMessage, style: TextStyle(color: Colors.red)),
             SizedBox(height: 20),
-            _isSaving
-                ? Center(child: CircularProgressIndicator())
-                : ElevatedButton.icon(
-                    icon: Icon(Icons.save),
-                    label: Text('Save Quiz'),
-                    onPressed: _saveQuiz,
-                  ),
+            Center(
+              child: _isSaving
+                  ? CircularProgressIndicator()
+                  : ElevatedButton.icon(
+                      icon: Icon(Icons.save, color: Colors.white),
+                      label: Text('Save Quiz', style: TextStyle(color: Colors.white)),
+                      onPressed: _saveQuiz,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+            ),
           ],
         ),
       ),

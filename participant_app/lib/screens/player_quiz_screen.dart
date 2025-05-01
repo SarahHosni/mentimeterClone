@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -97,7 +96,7 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       setState(() {
         isAnswered = true;
         selectedOption = option;
-        isCorrectAnswer = null; // Reset
+        isCorrectAnswer = null;
       });
 
       final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
@@ -113,24 +112,16 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       );
 
       try {
-        // Submit answer
         await responsesRef
             .child('question_$currentQuestionIndex/${widget.participantId}')
             .set(option);
 
-        print("Answer submitted: $option");
-
-        // Update score cumulatively
-        final participantRef =
-            sessionRef.child('participants/${widget.participantId}');
-
+        final participantRef = sessionRef.child('participants/${widget.participantId}');
         final snapshot = await participantRef.child('score').get();
         final int currentScore = snapshot.exists ? (snapshot.value as int) : 0;
         final int updatedScore = currentScore + score;
 
         await participantRef.child('score').set(updatedScore);
-
-        print("Score updated: $updatedScore");
       } catch (e) {
         print("Error submitting answer or updating score: $e");
       }
@@ -159,73 +150,132 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
         title: const Text('Live Quiz'),
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Time Left: ${isTimerRunning ? remainingTime : 0}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Icon(Icons.timer, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(
+                  '${isTimerRunning ? remainingTime : 0}s',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Question ${currentQuestionIndex + 1}/${questions.length}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              question.questionText,
-              style: const TextStyle(fontSize: 24),
-            ),
-            const SizedBox(height: 20),
-            ...question.options.map((opt) => RadioListTile<String>(
-                  title: Text(opt, style: const TextStyle(fontSize: 18)),
-                  value: opt,
-                  groupValue: selectedOption,
-                  onChanged: isAnswered
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            setState(() {
-                              selectedOption = value;
-                            });
-                          }
-                        },
-                )),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: (!isAnswered &&
-                      selectedOption != null &&
-                      isTimerRunning &&
-                      remainingTime > 0)
-                  ? () => submitAnswer(selectedOption!)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(isAnswered ? 'Answer Submitted' : 'Valider'),
-            ),
-            if (isAnswered && !isTimerRunning && isCorrectAnswer != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  isCorrectAnswer! ? 'Your answer is correct!' : 'Your answer is incorrect!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: isCorrectAnswer! ? Colors.green : Colors.red,
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Question ${currentQuestionIndex + 1}/${questions.length}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      question.questionText,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 24),
+                    ...question.options.map(
+                      (opt) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: BoxDecoration(
+                          color: selectedOption == opt
+                              ? Colors.deepPurple.withOpacity(0.1)
+                              : Colors.grey[100],
+                          border: Border.all(
+                            color: selectedOption == opt
+                                ? Colors.deepPurple
+                                : Colors.grey.shade300,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: RadioListTile<String>(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          title: Text(opt, style: const TextStyle(fontSize: 16)),
+                          value: opt,
+                          groupValue: selectedOption,
+                          onChanged: isAnswered
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      selectedOption = value;
+                                    });
+                                  }
+                                },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: (!isAnswered &&
+                              selectedOption != null &&
+                              isTimerRunning &&
+                              remainingTime > 0)
+                          ? () => submitAnswer(selectedOption!)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        isAnswered ? 'Answer Submitted' : 'Submit',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    if (isAnswered && !isTimerRunning && isCorrectAnswer != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isCorrectAnswer! ? Icons.check_circle : Icons.cancel,
+                              color: isCorrectAnswer! ? Colors.green : Colors.red,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isCorrectAnswer! ? 'Correct!' : 'Incorrect!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: isCorrectAnswer! ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );

@@ -166,7 +166,7 @@ Future<String?> _startQuizSession(String quizId) async {
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: _selectedQuiz != null
-                        ? QuizDetailScreen(quiz: _selectedQuiz!) 
+                        ? QuizDetailScreen(quizId: _selectedQuiz!.id!) 
                         : _buildQuizListView(),
                   ),
                 ),

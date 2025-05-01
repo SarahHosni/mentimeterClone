@@ -17,47 +17,76 @@ class NavigationRailWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: isExpanded ? 230 : 90,
-      color: Colors.grey[350],
+      width: isExpanded ? 230 : 88,
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.shade50,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(2, 0),
+          ),
+        ],
+      ),
       child: Stack(
         children: [
-          // NavigationRail itself, with top padding to make space for the toggle button
           Padding(
             padding: const EdgeInsets.only(top: 60),
             child: NavigationRail(
               extended: isExpanded,
-              backgroundColor: Colors.grey[350],
+              backgroundColor: Colors.transparent,
               selectedIndex: selectedIndex,
               onDestinationSelected: onDestinationSelected,
-              unselectedIconTheme: const IconThemeData(color: Colors.grey),
-              unselectedLabelTextStyle: const TextStyle(color: Colors.grey),
               selectedIconTheme: const IconThemeData(
-                color: Color.fromARGB(255, 0, 0, 0),
+                color: Colors.deepPurple,
+                size: 28,
               ),
               selectedLabelTextStyle: const TextStyle(
-                color: Color.fromARGB(255, 0, 0, 0),
+                color: Colors.deepPurple,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedIconTheme: const IconThemeData(
+                color: Colors.grey,
+              ),
+              unselectedLabelTextStyle: const TextStyle(
+                color: Colors.grey,
               ),
               destinations: const [
                 NavigationRailDestination(
-                    icon: Icon(Icons.home), label: Text("Home")),
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: Text("Home")),
                 NavigationRailDestination(
-                    icon: Icon(Icons.bar_chart), label: Text("Reports")),
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart),
+                    label: Text("Reports")),
                 NavigationRailDestination(
-                    icon: Icon(Icons.person), label: Text("Profile")),
+                    icon: Icon(Icons.person_outline),
+                    selectedIcon: Icon(Icons.person),
+                    label: Text("Profile")),
                 NavigationRailDestination(
-                    icon: Icon(Icons.settings), label: Text("Settings")),
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: Text("Settings")),
               ],
             ),
           ),
-
-          // Menu toggle button at top-left corner
           Positioned(
             top: 10,
             left: 10,
-            child: IconButton(
-              icon: const Icon(Icons.menu, color: Color.fromARGB(255, 0, 0, 0)),
-              onPressed: onToggle,
-              tooltip: 'Toggle Navigation',
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  isExpanded ? Icons.arrow_back_ios : Icons.menu,
+                  color: Colors.deepPurple[900],
+                ),
+                onPressed: onToggle,
+                tooltip: 'Toggle Navigation',
+              ),
             ),
           ),
         ],
