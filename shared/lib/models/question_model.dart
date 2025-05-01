@@ -8,7 +8,7 @@ class QuestionModel {
     required this.questionText,
     required this.options,
     required this.correctAnswerIndex,
-    this.duration = 30,
+     required this.duration,
   });
 
   // Convert from Map (Firestore format)
@@ -17,6 +17,7 @@ class QuestionModel {
       questionText: map['questionText'],
       options: List<String>.from(map['options']),
       correctAnswerIndex: map['correctAnswerIndex'],
+      duration: map['duration'] ?? 30,
     );
   }
 

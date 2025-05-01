@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:shared/models/quiz_model.dart';
+import 'package:shared/screens/leaderboard_screen.dart'; // Make sure the path is correct
 
 class QuizPresentationScreen extends StatefulWidget {
   final QuizModel quiz;
@@ -23,6 +24,7 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     app: Firebase.app(),
     databaseURL: 'https://mentimeterclone-d624e-default-rtdb.firebaseio.com',
   );
+
   late DatabaseReference participantsRef;
   late DatabaseReference sessionRef;
   late DatabaseReference responsesRef;
@@ -45,7 +47,6 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
 
     participantsRef.onChildAdded.listen(_onParticipantAdded);
     participantsRef.onChildRemoved.listen(_onParticipantRemoved);
-
     sessionRef.onDisconnect().remove();
   }
 
@@ -154,7 +155,23 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
 
     await Future.delayed(Duration(seconds: 3));
 
-    if (_currentQuestionIndex < widget.quiz.questions.length - 1) {
+    final isLastQuestion = _currentQuestionIndex >= widget.quiz.questions.length - 1;
+
+    if (isLastQuestion) {
+      // Mark quiz as ended
+      await sessionRef.update({'quizEnded': true});
+
+      // Navigate to leaderboard
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LeaderboardScreen(sessionId: widget.sessionId),
+          ),
+        );
+      }
+    } else {
+      // Go to next question
       setState(() {
         _currentQuestionIndex++;
         _results.clear();
@@ -187,6 +204,13 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
     }
   }
 
+  Future<void> _terminateQuiz() async {
+    await sessionRef.remove();
+    if (mounted) {
+      Navigator.of(context).pop(); // Return to previous screen
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.quiz.questions.isEmpty
@@ -194,6 +218,34 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
         : widget.quiz.questions[_currentQuestionIndex];
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Quiz Presentation'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.stop_circle_outlined),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('End Quiz?'),
+                  content: Text('Are you sure you want to terminate the quiz session?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('Terminate'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) _terminateQuiz();
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -311,7 +363,7 @@ class _QuizPresentationScreenState extends State<QuizPresentationScreen> {
                   ElevatedButton(
                     onPressed: !_isTimerRunning &&
                             _showingResults &&
-                            _currentQuestionIndex < widget.quiz.questions.length - 1
+                            _currentQuestionIndex < widget.quiz.questions.length
                         ? _goToNextQuestion
                         : null,
                     child: Text("Next"),

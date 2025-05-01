@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared/models/question_model.dart';
+import 'package:shared/services/score_service.dart';
 
 class PlayerQuizScreen extends StatefulWidget {
   final String sessionId;
@@ -32,7 +34,7 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
   String? selectedOption;
   int remainingTime = 0;
   bool isTimerRunning = false;
-  bool? isAnswerCorrect; // To track if the participant's answer is correct
+  bool? isCorrectAnswer;
 
   StreamSubscription<DatabaseEvent>? sessionListener;
   StreamSubscription<DatabaseEvent>? timerListener;
@@ -51,7 +53,6 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
 
     responsesRef = sessionRef.child('responses');
 
-    // Listen for changes in the session (e.g., question index updates)
     sessionListener = sessionRef.onValue.listen((event) {
       final data = event.snapshot.value as Map?;
       if (data != null && mounted) {
@@ -61,31 +62,32 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
             currentQuestionIndex = newIndex;
             isAnswered = false;
             selectedOption = null;
-            isAnswerCorrect = null; // Reset feedback
+            isCorrectAnswer = null;
           });
         }
       }
     });
 
-    // Listen for changes in the timer state
     timerListener = sessionRef.child('timerState').onValue.listen((event) {
       final timerData = event.snapshot.value as Map?;
       if (timerData != null && mounted) {
+        final bool newIsRunning = timerData['isRunning'] ?? false;
+        final int newRemainingTime = timerData['remainingTime'] ?? 0;
+
         setState(() {
-          isTimerRunning = timerData['isRunning'] ?? false;
-          remainingTime = timerData['remainingTime'] ?? 0;
-
-          // If the timer ends, validate the answer
-          if (!isTimerRunning && isAnswered && isAnswerCorrect == null) {
-            final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
-            final int selectedIndex = question.options.indexOf(selectedOption!);
-            final bool isCorrect = selectedIndex == question.correctAnswerIndex;
-
-            setState(() {
-              isAnswerCorrect = isCorrect;
-            });
-          }
+          isTimerRunning = newIsRunning;
+          remainingTime = newRemainingTime;
         });
+
+        if (!newIsRunning && isAnswered && isCorrectAnswer == null) {
+          final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
+          final int selectedIndex = question.options.indexOf(selectedOption!);
+          final bool correct = selectedIndex == question.correctAnswerIndex;
+
+          setState(() {
+            isCorrectAnswer = correct;
+          });
+        }
       }
     });
   }
@@ -95,28 +97,42 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       setState(() {
         isAnswered = true;
         selectedOption = option;
+        isCorrectAnswer = null; // Reset
       });
 
+      final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
+
+      final int selectedIndex = question.options.indexOf(option);
+      final bool isCorrect = selectedIndex == question.correctAnswerIndex;
+      final int maxTime = question.duration;
+
+      int score = ScoreService.calculateScore(
+        isCorrect: isCorrect,
+        remainingTime: remainingTime,
+        maxTime: maxTime,
+      );
+
       try {
-        // Submit answer to Firebase
+        // Submit answer
         await responsesRef
             .child('question_$currentQuestionIndex/${widget.participantId}')
             .set(option);
 
         print("Answer submitted: $option");
 
-        // Check if the answer is correct
-        final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
-        final int selectedIndex = question.options.indexOf(option);
-        final bool isCorrect = selectedIndex == question.correctAnswerIndex;
+        // Update score cumulatively
+        final participantRef =
+            sessionRef.child('participants/${widget.participantId}');
 
-        setState(() {
-          isAnswerCorrect = isCorrect;
-        });
+        final snapshot = await participantRef.child('score').get();
+        final int currentScore = snapshot.exists ? (snapshot.value as int) : 0;
+        final int updatedScore = currentScore + score;
 
-        print("Answer correctness: ${isAnswerCorrect}");
+        await participantRef.child('score').set(updatedScore);
+
+        print("Score updated: $updatedScore");
       } catch (e) {
-        print("Error submitting answer: $e");
+        print("Error submitting answer or updating score: $e");
       }
     }
   }
@@ -196,36 +212,18 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text(isAnswered ? 'Answer Submitted' : 'Validate Answer'),
+              child: Text(isAnswered ? 'Answer Submitted' : 'Valider'),
             ),
-            const SizedBox(height: 20),
-            // Display feedback after timer ends
-            if (!isTimerRunning && isAnswered && isAnswerCorrect != null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isAnswerCorrect!
-                        ? Icons.check_circle
-                        : Icons.close,
-                    color: isAnswerCorrect!
-                        ? Colors.green
-                        : Colors.red,
-                    size: 24,
+            if (isAnswered && !isTimerRunning && isCorrectAnswer != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  isCorrectAnswer! ? 'Your answer is correct!' : 'Your answer is incorrect!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isCorrectAnswer! ? Colors.green : Colors.red,
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    isAnswerCorrect!
-                        ? 'Your answer is correct!'
-                        : 'Your answer is incorrect.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: isAnswerCorrect!
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ),
-                ],
+                ),
               ),
           ],
         ),
