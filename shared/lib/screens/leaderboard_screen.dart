@@ -14,6 +14,7 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen>
     with TickerProviderStateMixin {
   late DatabaseReference participantsRef;
+  late DatabaseReference sessionRef; // Reference to the session
   List<Map<String, dynamic>> participants = [];
   bool isLoading = true;
   final List<AnimationController> _controllers = [];
@@ -26,6 +27,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       app: Firebase.app(),
       databaseURL: 'https://mentimeterclone-d624e-default-rtdb.firebaseio.com',
     ).ref('sessions/${widget.sessionId}/participants');
+
+    // Reference to the session to delete it later
+    sessionRef = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: 'https://mentimeterclone-d624e-default-rtdb.firebaseio.com',
+    ).ref('sessions/${widget.sessionId}');
+
     _fetchParticipants();
   }
 
@@ -98,6 +106,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
         );
     }
+  }
+
+  Future<void> _quitSession() async {
+    // Delete the session from Firebase Realtime Database
+    await sessionRef.remove();
+
+    // Navigate back to the dashboard screen (replace with your actual route)
+    Navigator.popUntil(context, ModalRoute.withName('/dashboard'));
   }
 
   @override
@@ -187,6 +203,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                                     ),
                                   );
                                 },
+                              ),
+                            ),
+                            // Add the "QUIT" button here
+                            ElevatedButton(
+                              onPressed: _quitSession,
+                              child: Text(
+                                'QUIT',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 32),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ],
