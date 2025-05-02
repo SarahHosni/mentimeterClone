@@ -28,7 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isExpanded = false;
   int _selectedIndex = 0;
   QuizModel? _selectedQuiz;
-    final _sessionService = SessionService();
+  final _sessionService = SessionService();
 
   @override
   void initState() {
@@ -41,7 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final uid = _auth.currentUser?.uid;
     if (uid != null) {
       final fetchedUser = await UserService().getUser(uid);
-      if (mounted) { // Check if the widget is still mounted
+      if (mounted) {
+        // Check if the widget is still mounted
         setState(() {
           _user = fetchedUser;
         });
@@ -56,17 +57,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else {
       _quizzes = Future.value([]);
     }
-    if (mounted) { // Check if the widget is still mounted
+    if (mounted) {
+      // Check if the widget is still mounted
       setState(() {});
     }
   }
 
   // Handle navigation based on selected index
+
   void _onDestinationSelected(int index) {
     setState(() {
       _selectedIndex = index;
       _selectedQuiz = null; // Clear quiz detail when navigating
     });
+    final uid = _auth.currentUser?.uid;
+    // Handle navigation based on the selected index
+    switch (index) {
+      case 0:
+        // Navigate to Home Screen
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        // Navigate to Reports Screen
+        Navigator.pushNamed(context, '/invitations');
+        break;
+      case 2:
+        // Navigate to Profile Screen
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+      case 3:
+        // Navigate to Settings Screen
+        Navigator.pushReplacementNamed(context, '/settings');
+        break;
+      case 4:
+        // Navigate to Shared Quizzes Screen
+        if (uid != null) {
+          Navigator.pushNamed(
+            context,
+            '/sharedQuizzes',
+            arguments: {'userId': uid}, // Replace with actual user ID
+          );
+        }
+        break;
+      default:
+        // Default behavior (optional)
+        break;
+    }
   }
 
   // Handle quiz selection to show its details
@@ -83,39 +119,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
+
   void _startQuizPresentation(QuizModel quiz) async {
-  // 1. Create a session first
-  final sessionId = await _startQuizSession(quiz.id!); // ✅ sessionId is a String?
+    // 1. Create a session first
+    final sessionId =
+        await _startQuizSession(quiz.id!); // ✅ sessionId is a String?
 
-  // 2. If session creation is successful, navigate to presentation screen
-  if (sessionId != null) {
-    Navigator.pushNamed(
-  context,
-  '/presentation',
-  arguments: {
-    'quiz': quiz,
-    'sessionId': sessionId,
-  },
-);
-  } else {
-    print("Session creation failed");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to start the quiz session')),
-    );
+    // 2. If session creation is successful, navigate to presentation screen
+    if (sessionId != null) {
+      Navigator.pushNamed(
+        context,
+        '/presentation',
+        arguments: {
+          'quiz': quiz,
+          'sessionId': sessionId,
+        },
+      );
+    } else {
+      print("Session creation failed");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to start the quiz session')),
+      );
+    }
   }
-}
 
-Future<String?> _startQuizSession(String quizId) async {
-  try {
-    final sessionId = await _sessionService.createSession(quizId);
-    print('Session started with ID: $sessionId');
-    return sessionId;
-  } catch (e) {
-    print('Failed to create session: $e');
-    return null; // 🔵 Important: Return null if it fails
+  Future<String?> _startQuizSession(String quizId) async {
+    try {
+      final sessionId = await _sessionService.createSession(quizId);
+      print('Session started with ID: $sessionId');
+      return sessionId;
+    } catch (e) {
+      print('Failed to create session: $e');
+      return null; // 🔵 Important: Return null if it fails
+    }
   }
-}
-
 
   // Delete quiz function
   void _deleteQuiz(String quizId) async {
@@ -125,8 +162,12 @@ Future<String?> _startQuizSession(String quizId) async {
         title: Text("Delete Quiz"),
         content: Text("Are you sure you want to delete this quiz?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text("Delete")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("Cancel")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Delete")),
         ],
       ),
     );
@@ -137,9 +178,6 @@ Future<String?> _startQuizSession(String quizId) async {
       }
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -160,15 +198,12 @@ Future<String?> _startQuizSession(String quizId) async {
             child: Column(
               children: [
                 CustomAppBar(
-                  title: 'Admin Dashboard',
-                  onLogout: _logout,
-                  arrow: false
-                ),
+                    title: 'Admin Dashboard', onLogout: _logout, arrow: false),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: _selectedQuiz != null
-                        ? QuizDetailScreen(quizId: _selectedQuiz!.id!) 
+                        ? QuizDetailScreen(quizId: _selectedQuiz!.id!)
                         : _buildQuizListView(),
                   ),
                 ),
@@ -182,72 +217,74 @@ Future<String?> _startQuizSession(String quizId) async {
 
   // Builds the list of quizzes in a grid view
   @override
-Widget _buildQuizListView() {
-  return SingleChildScrollView(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Welcome, ${_user?.userName ?? 'User'}',
-          style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => CreateQuizScreen()),
-            ).then((_) => _loadQuizzes());
-          },
-          child: Text('Create New Quiz'),
-        ),
-        SizedBox(height: 20),
-        FutureBuilder<List<QuizModel>>(
-          future: _quizzes,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
-            }
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-            if (snapshot.data == null || snapshot.data!.isEmpty) {
-              return Text('No quizzes created yet.');
-            }
-            final quizzes = snapshot.data!;
-            return GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: 4 / 3,
-              ),
-              itemCount: quizzes.length,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                final quiz = quizzes[index];
-                return QuizCard(
-                  quiz: quiz,
-                  onEdited: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateQuizScreen(quiz: quiz),
-                      ),
-                    ).then((_) => _loadQuizzes());
-                  },
-                  onDelete: () => _deleteQuiz(quiz.id!),
-                  onTap: () => _onQuizSelected(quiz),
-                  onStartPresentation: () => _startQuizPresentation(quiz), // Add the start presentation handler
-                );
-              },
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
+  Widget _buildQuizListView() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome, ${_user?.userName ?? 'User'}',
+            style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CreateQuizScreen()),
+              ).then((_) => _loadQuizzes());
+            },
+            child: Text('Create New Quiz'),
+          ),
+          SizedBox(height: 20),
+          FutureBuilder<List<QuizModel>>(
+            future: _quizzes,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              }
+              if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              }
+              if (snapshot.data == null || snapshot.data!.isEmpty) {
+                return Text('No quizzes created yet.');
+              }
+              final quizzes = snapshot.data!;
+              return GridView.builder(
+                padding: const EdgeInsets.all(8),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount:
+                      MediaQuery.of(context).size.width > 900 ? 3 : 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 4 / 3,
+                ),
+                itemCount: quizzes.length,
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final quiz = quizzes[index];
+                  return QuizCard(
+                    quiz: quiz,
+                    onEdited: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateQuizScreen(quiz: quiz),
+                        ),
+                      ).then((_) => _loadQuizzes());
+                    },
+                    onDelete: () => _deleteQuiz(quiz.id!),
+                    onTap: () => _onQuizSelected(quiz),
+                    onStartPresentation: () => _startQuizPresentation(quiz),
+                    IsEdit: true,
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }

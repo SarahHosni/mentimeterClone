@@ -53,21 +53,31 @@ class NavigationRailWidget extends StatelessWidget {
               ),
               destinations: const [
                 NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: Text("Home")),
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text("Home"),
+                ),
                 NavigationRailDestination(
-                    icon: Icon(Icons.bar_chart_outlined),
-                    selectedIcon: Icon(Icons.bar_chart),
-                    label: Text("Reports")),
+                  icon: Icon(Icons.notification_add),
+                  selectedIcon: Icon(Icons.notification_add),
+                  label: Text("Invitations"),
+                ),
                 NavigationRailDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: Text("Profile")),
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text("Profile"),
+                ),
                 NavigationRailDestination(
-                    icon: Icon(Icons.settings_outlined),
-                    selectedIcon: Icon(Icons.settings),
-                    label: Text("Settings")),
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: Text("Settings"),
+                ),
+                // New Destination for Shared Quizzes
+                NavigationRailDestination(
+                  icon: Icon(Icons.share_outlined),
+                  selectedIcon: Icon(Icons.share),
+                  label: Text("Shared Quizzes"),
+                ),
               ],
             ),
           ),

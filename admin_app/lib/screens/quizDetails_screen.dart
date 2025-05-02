@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared/models/quiz_model.dart';
@@ -5,7 +6,7 @@ import 'package:shared/models/quiz_model.dart';
 class QuizDetailScreen extends StatefulWidget {
   final String quizId;
 
-  const QuizDetailScreen({super.key, required this.quizId});
+  QuizDetailScreen({required this.quizId});
 
   @override
   _QuizDetailScreenState createState() => _QuizDetailScreenState();
@@ -25,8 +26,10 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
 
   Future<QuizModel> _fetchQuizDetails(String quizId) async {
     try {
-      final quizSnapshot =
-          await FirebaseFirestore.instance.collection('quizzes').doc(quizId).get();
+      final quizSnapshot = await FirebaseFirestore.instance
+          .collection('quizzes')
+          .doc(quizId)
+          .get();
 
       if (quizSnapshot.exists) {
         return QuizModel.fromFirestore(quizSnapshot);
@@ -36,6 +39,89 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     } catch (e) {
       throw Exception('Failed to load quiz details: $e');
     }
+  }
+
+  // Share Dialog Method
+  Future<void> _showShareDialog() async {
+    final TextEditingController emailController = TextEditingController();
+    String selectedPermission = 'Read Only'; // Default permission
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Invite Participant'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedPermission,
+                decoration: InputDecoration(
+                  labelText: 'Permission',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Read Only', 'Edit'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    selectedPermission = newValue;
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final email = emailController.text.trim();
+                if (email.isNotEmpty) {
+                  // Send invitation instead of updating the shared list directly
+                  FirebaseFirestore.instance.collection('invitations').add({
+                    'toEmail': email,
+                    'fromUid': FirebaseAuth.instance.currentUser!.uid,
+                    'quizId': widget.quizId,
+                    'right':
+                        selectedPermission.toLowerCase(), // "read" or "edit"
+                    'status': 'pending',
+                    'timestamp': FieldValue.serverTimestamp(),
+                  });
+
+                  // Show confirmation to the user
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Invitation sent to $email')),
+                  );
+
+                  Navigator.pop(context); // Close the dialog
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a valid email')),
+                  );
+                }
+              },
+              child: Text('Invite'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -77,7 +163,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           IconButton(
             icon: Icon(Icons.share),
             onPressed: () {
-              _showSnackBar(context, 'Share feature coming soon!');
+              _showShareDialog();
             },
           ),
         ],
@@ -117,7 +203,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           } else if (snapshot.hasData) {
             final quiz = snapshot.data!;
             return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 32, vertical: 20),
+              padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 16 : 32, vertical: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -154,7 +241,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                           SizedBox(height: 12),
                           Row(
                             children: [
-                              Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                              Icon(Icons.calendar_today,
+                                  size: 16, color: Colors.grey[600]),
                               SizedBox(width: 8),
                               Text(
                                 'Created on: ${_formatDate(quiz.createdAt.toDate())}',
@@ -168,7 +256,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                           SizedBox(height: 12),
                           Row(
                             children: [
-                              Icon(Icons.question_answer, size: 16, color: Colors.grey[600]),
+                              Icon(Icons.question_answer,
+                                  size: 16, color: Colors.grey[600]),
                               SizedBox(width: 8),
                               Text(
                                 '${quiz.questions.length} Questions',
@@ -204,7 +293,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                               SizedBox(height: 8),
                               ...question.options.map((option) {
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
                                   child: Row(
                                     children: [
                                       Icon(
@@ -223,7 +313,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                     ],
                                   ),
                                 );
-                              }),
+                              }).toList(),
                             ],
                           ),
                         );
@@ -246,8 +336,19 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
 
   String _monthName(int month) {
     const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return months[month];
   }

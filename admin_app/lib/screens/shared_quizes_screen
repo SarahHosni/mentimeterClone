@@ -1,0 +1,225 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared/models/quiz_model.dart';
+import '../models/AppUser.dart';
+import '../screens/create_quiz_screen.dart';
+import '../screens/quizDetails_screen.dart';  // Import the new screen
+import '../widgets/quizCard_widget.dart';
+import 'package:shared/services/quiz_service.dart';
+import 'package:shared/services/session_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class SharedQuizzesScreen extends StatefulWidget {
+  final String userId;
+
+  const SharedQuizzesScreen({super.key, required this.userId});
+
+  @override
+  _SharedQuizzesScreenState createState() => _SharedQuizzesScreenState();
+}
+
+class _SharedQuizzesScreenState extends State<SharedQuizzesScreen> {
+  late Future<List<Map<String, dynamic>>> _sharedQuizzesFuture;
+  final _auth = FirebaseAuth.instance;
+  final _quizService = QuizService();
+  final _sessionService = SessionService();
+  QuizModel? _selectedQuiz;
+
+  @override
+  void initState() {
+    super.initState();
+    _sharedQuizzesFuture = _fetchSharedQuizzes();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSharedQuizzes() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .get();
+
+      if (!userDoc.exists) throw Exception('Utilisateur non trouvé');
+
+      final appUser = AppUser.fromFirestore(userDoc);
+      List<Map<String, dynamic>> sharedQuizzes = [];
+
+      for (var sharedQuiz in appUser.shared) {
+        final quizDoc = await FirebaseFirestore.instance
+            .collection('quizzes')
+            .doc(sharedQuiz.quizId)
+            .get();
+
+        if (quizDoc.exists) {
+          final quiz = QuizModel.fromFirestore(quizDoc);
+          sharedQuizzes.add({
+            'quiz': quiz,
+            'right': sharedQuiz.right,
+          });
+        }
+      }
+
+      return sharedQuizzes;
+    } catch (e) {
+      print('Erreur lors de la récupération des quiz partagés : $e');
+      rethrow;
+    }
+  }
+
+  void _logout() async {
+    await _auth.signOut();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  Future<String?> _startQuizSession(String quizId) async {
+    try {
+      final sessionId = await _sessionService.createSession(quizId);
+      print('Session started with ID: $sessionId');
+      return sessionId;
+    } catch (e) {
+      print('Failed to create session: $e');
+      return null;
+    }
+  }
+
+  void _startQuizPresentation(QuizModel quiz) async {
+    final sessionId = await _startQuizSession(quiz.id!);
+    if (sessionId != null) {
+      Navigator.pushNamed(
+        context,
+        '/presentation',
+        arguments: {
+          'quiz': quiz,
+          'sessionId': sessionId,
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to start the quiz session')),
+      );
+    }
+  }
+
+  void _deleteQuiz(String quizId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Quiz"),
+        content: Text("Are you sure you want to delete this quiz?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("Cancel")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Delete")),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _quizService.deleteQuiz(quizId);
+      setState(() {
+        _sharedQuizzesFuture = _fetchSharedQuizzes();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Invitations'),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.purple.shade300],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // Align text to the left
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+            'Shared with you',
+            style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+          ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _sharedQuizzesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text("No shared quizzes available."));
+                }
+
+                final sharedQuizzes = snapshot.data!;
+
+                return GridView.builder(
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 4 / 3,
+                  ),
+                  itemCount: sharedQuizzes.length,
+                  itemBuilder: (context, index) {
+                    final quiz = sharedQuizzes[index]['quiz'] as QuizModel;
+                    final right = sharedQuizzes[index]['right'] as String;
+
+                    return QuizCard(
+                      quiz: quiz,
+                      onEdited: right == 'edit'
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CreateQuizScreen(quiz: quiz),
+                                ),
+                              ).then((_) {
+                                setState(() {
+                                  _sharedQuizzesFuture = _fetchSharedQuizzes();
+                                });
+                              });
+                            }
+                          : () {}, // No-op if no permission
+                      onDelete: right == 'edit'
+                          ? () => _deleteQuiz(quiz.id!)
+                          : () {}, // No-op if no permission
+                      onTap: () {
+                        // Navigate to the QuizDetailsScreen when the card is tapped
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QuizDetailScreen(quizId: quiz.id!),  // New screen navigation
+                          ),
+                        );
+                      },
+                      onStartPresentation: () => _startQuizPresentation(quiz),
+                      IsEdit: right == 'edit',
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

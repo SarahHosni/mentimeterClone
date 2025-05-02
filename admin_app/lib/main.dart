@@ -1,4 +1,6 @@
+import 'package:admin_app/screens/invitations_screen.dart';
 import 'package:admin_app/screens/quiz_presentation_screen.dart';
+import 'package:admin_app/screens/shared_quizes_screen';
 import 'package:shared/models/quiz_model.dart';
 import 'package:admin_app/screens/quizDetails_screen.dart';
 import 'package:flutter/material.dart';
@@ -37,34 +39,39 @@ class MyApp extends StatelessWidget {
         '/register': (context) => Register(),
         '/dashboard': (context) => DashboardScreen(),
         '/create-quiz': (context) => CreateQuizScreen(),
-        '/quiz-details': (context) => QuizDetailScreen(quizId: ModalRoute.of(context)!.settings.arguments as String),
+        '/quiz-details': (context) => QuizDetailScreen(
+            quizId: ModalRoute.of(context)!.settings.arguments as String),
+        '/sharedQuizzes': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          final userId = args['userId'] as String;
+          return SharedQuizzesScreen(userId: userId);
+        },
+        '/invitations': (context) => InvitationsScreen(),
+        '/presentation': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map?;
+          if (args == null) {
+            return Scaffold(
+              body: Center(
+                  child: Text(
+                      'No arguments were passed to the presentation screen.')),
+            );
+          }
 
-        
-  '/presentation': (context) {
-  final args = ModalRoute.of(context)?.settings.arguments as Map?;
-  if (args == null) {
-    return Scaffold(
-      body: Center(child: Text('No arguments were passed to the presentation screen.')),
-    );
-  }
+          final quiz = args['quiz'];
+          final sessionId = args['sessionId'];
 
-  final quiz = args['quiz'];
-  final sessionId = args['sessionId'];
+          if (quiz == null || sessionId == null) {
+            return Scaffold(
+              body: Center(child: Text('Required arguments are missing.')),
+            );
+          }
 
-  if (quiz == null || sessionId == null) {
-    return Scaffold(
-      body: Center(child: Text('Required arguments are missing.')),
-    );
-  }
-
-  return QuizPresentationScreen(
-    quiz: quiz, 
-    sessionId: sessionId,
-  );
-},
-
-
-
+          return QuizPresentationScreen(
+            quiz: quiz,
+            sessionId: sessionId,
+          );
+        },
       },
     );
   }
@@ -98,5 +105,3 @@ class AuthGate extends StatelessWidget {
     );
   }
 }
-
-

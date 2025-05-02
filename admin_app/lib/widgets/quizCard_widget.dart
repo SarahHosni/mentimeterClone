@@ -10,7 +10,8 @@ class QuizCard extends StatelessWidget {
   final VoidCallback onEdited;
   final VoidCallback onTap;
   final VoidCallback onStartPresentation;
-
+  final bool IsEdit;
+  // final String sharedBy;
   const QuizCard({
     super.key,
     required this.quiz,
@@ -18,6 +19,8 @@ class QuizCard extends StatelessWidget {
     required this.onEdited,
     required this.onTap,
     required this.onStartPresentation,
+    required this.IsEdit,
+    // required this.sharedBy
   });
 
   String _formatDate(DateTime date) {
@@ -26,8 +29,19 @@ class QuizCard extends StatelessWidget {
 
   String _monthName(int month) {
     const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return months[month];
   }
@@ -83,7 +97,8 @@ class QuizCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: Colors.deepPurple[800], // Darker purple for title
+                            color: Colors
+                                .deepPurple[800], // Darker purple for title
                           ),
                         ),
                         SizedBox(height: 6),
@@ -91,45 +106,49 @@ class QuizCard extends StatelessWidget {
                           quiz.editedAt != null
                               ? 'Edited ${_formatDate(quiz.editedAt!.toDate())}'
                               : 'Created ${_formatDate(quiz.createdAt.toDate())}',
-                          style: TextStyle(color: Colors.deepPurple[400], fontSize: 14),
+                          style: TextStyle(
+                              color: Colors.deepPurple[400], fontSize: 14),
                         ),
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        onEdited();
-                      } else if (value == 'delete') {
-                        onDelete();
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
-                  ),
+                  if (IsEdit)
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          onEdited();
+                        } else if (value == 'delete') {
+                          onDelete();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
+                    )
                 ],
               ),
             ),
             Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-  child: ElevatedButton(
-    onPressed: onStartPresentation,
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.deepPurple, // Deep purple button
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32), // Adjust horizontal and vertical padding
-    ),
-    child: Text(
-      'Present',
-      style: TextStyle(fontSize: 16, color: Colors.white), // White text
-    ),
-  ),
-),
-
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: ElevatedButton(
+                onPressed: onStartPresentation,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple, // Deep purple button
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 32), // Adjust horizontal and vertical padding
+                ),
+                child: Text(
+                  'Present',
+                  style: TextStyle(
+                      fontSize: 16, color: Colors.white), // White text
+                ),
+              ),
+            ),
           ],
         ),
       ),
