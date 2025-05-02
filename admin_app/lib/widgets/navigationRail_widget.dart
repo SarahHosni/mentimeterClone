@@ -7,12 +7,12 @@ class NavigationRailWidget extends StatelessWidget {
   final Function(int) onDestinationSelected;
 
   const NavigationRailWidget({
-    Key? key,
+    super.key,
     required this.isExpanded,
     required this.onToggle,
     required this.selectedIndex,
     required this.onDestinationSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

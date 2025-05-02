@@ -5,7 +5,7 @@ import 'package:shared/models/quiz_model.dart';
 class QuizDetailScreen extends StatefulWidget {
   final String quizId;
 
-  QuizDetailScreen({required this.quizId});
+  const QuizDetailScreen({super.key, required this.quizId});
 
   @override
   _QuizDetailScreenState createState() => _QuizDetailScreenState();
@@ -223,7 +223,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                           ),
                         );

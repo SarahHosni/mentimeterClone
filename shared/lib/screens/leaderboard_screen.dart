@@ -5,18 +5,19 @@ import 'package:flutter/material.dart';
 class LeaderboardScreen extends StatefulWidget {
   final String sessionId;
 
-  const LeaderboardScreen({required this.sessionId, Key? key}) : super(key: key);
+  const LeaderboardScreen({required this.sessionId, super.key});
 
   @override
   _LeaderboardScreenState createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen> with TickerProviderStateMixin {
+class _LeaderboardScreenState extends State<LeaderboardScreen>
+    with TickerProviderStateMixin {
   late DatabaseReference participantsRef;
   List<Map<String, dynamic>> participants = [];
   bool isLoading = true;
-  List<AnimationController> _controllers = [];
-  List<Animation<Offset>> _animations = [];
+  final List<AnimationController> _controllers = [];
+  final List<Animation<Offset>> _animations = [];
 
   @override
   void initState() {
@@ -117,19 +118,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with TickerProvid
           'LeaderBoard',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : participants.isEmpty
-              ? Center(child: Text("No participants yet", style: TextStyle(fontSize: 18)))
+              ? Center(
+                  child: Text("No results to show",
+                      style: TextStyle(fontSize: 18)))
               : Center(
                   child: Container(
                     constraints: BoxConstraints(maxWidth: 600),
                     padding: const EdgeInsets.all(16),
                     child: Card(
                       elevation: 8,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                       color: Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
@@ -157,9 +160,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with TickerProvid
                                         color: Colors.deepPurple[50],
                                         elevation: 3,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
-                                        margin: const EdgeInsets.symmetric(vertical: 8),
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 8),
                                         child: ListTile(
                                           leading: _buildMedal(index),
                                           title: Text(

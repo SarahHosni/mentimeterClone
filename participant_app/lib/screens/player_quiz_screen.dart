@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:participant_app/screens/ended_screen.dart';
 import 'package:shared/models/question_model.dart';
 import 'package:shared/services/score_service.dart';
 
@@ -26,22 +27,20 @@ class PlayerQuizScreen extends StatefulWidget {
 class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
   late DatabaseReference sessionRef;
   late DatabaseReference responsesRef;
-
   late int currentQuestionIndex;
   late List<dynamic> questions;
   bool isAnswered = false;
+  bool isTimedOut = false;
   String? selectedOption;
   int remainingTime = 0;
   bool isTimerRunning = false;
   bool? isCorrectAnswer;
-
   StreamSubscription<DatabaseEvent>? sessionListener;
   StreamSubscription<DatabaseEvent>? timerListener;
 
   @override
   void initState() {
     super.initState();
-
     questions = widget.questions;
     currentQuestionIndex = widget.currentQuestionIndex;
 
@@ -49,17 +48,36 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       app: Firebase.app(),
       databaseURL: 'https://mentimeterclone-d624e-default-rtdb.firebaseio.com',
     ).ref('sessions/${widget.sessionId}');
-
     responsesRef = sessionRef.child('responses');
 
-    sessionListener = sessionRef.onValue.listen((event) {
+    // Listen for changes in the session data
+    sessionListener = sessionRef.onValue.listen((event) async {
       final data = event.snapshot.value as Map?;
       if (data != null && mounted) {
+        // Check if the quiz has ended
+        final bool quizEnded = data['quizEnded'] ?? false;
+        if (quizEnded) {
+          final participantRef =
+              sessionRef.child('participants/${widget.participantId}');
+          final snapshot = await participantRef.child('score').get();
+          final int participantScore =
+              snapshot.exists ? (snapshot.value as int) : 0;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuizEndedScreen(score: participantScore),
+            ),
+          );
+        }
+
+        // Update current question index
         final int newIndex = data['currentQuestionIndex'] ?? 0;
         if (newIndex != currentQuestionIndex) {
           setState(() {
             currentQuestionIndex = newIndex;
             isAnswered = false;
+            isTimedOut = false;
             selectedOption = null;
             isCorrectAnswer = null;
           });
@@ -67,25 +85,36 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       }
     });
 
+    // Listen for timer updates
     timerListener = sessionRef.child('timerState').onValue.listen((event) {
       final timerData = event.snapshot.value as Map?;
       if (timerData != null && mounted) {
         final bool newIsRunning = timerData['isRunning'] ?? false;
         final int newRemainingTime = timerData['remainingTime'] ?? 0;
-
         setState(() {
           isTimerRunning = newIsRunning;
           remainingTime = newRemainingTime;
         });
 
-        if (!newIsRunning && isAnswered && isCorrectAnswer == null) {
-          final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
-          final int selectedIndex = question.options.indexOf(selectedOption!);
-          final bool correct = selectedIndex == question.correctAnswerIndex;
+        if (!newIsRunning) {
+          // If user submitted but hasn't got result yet
+          if (isAnswered && isCorrectAnswer == null) {
+            final question =
+                QuestionModel.fromMap(questions[currentQuestionIndex]);
+            final int selectedIndex = question.options.indexOf(selectedOption!);
+            final bool correct = selectedIndex == question.correctAnswerIndex;
+            setState(() {
+              isCorrectAnswer = correct;
+            });
+          }
 
-          setState(() {
-            isCorrectAnswer = correct;
-          });
+          // ✅ Timeout logic
+          if (!isAnswered && !isTimedOut) {
+            setState(() {
+              isTimedOut = true;
+              isAnswered = true; // Lock the options
+            });
+          }
         }
       }
     });
@@ -100,11 +129,9 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
       });
 
       final question = QuestionModel.fromMap(questions[currentQuestionIndex]);
-
       final int selectedIndex = question.options.indexOf(option);
       final bool isCorrect = selectedIndex == question.correctAnswerIndex;
       final int maxTime = question.duration;
-
       int score = ScoreService.calculateScore(
         isCorrect: isCorrect,
         remainingTime: remainingTime,
@@ -116,11 +143,11 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
             .child('question_$currentQuestionIndex/${widget.participantId}')
             .set(option);
 
-        final participantRef = sessionRef.child('participants/${widget.participantId}');
+        final participantRef =
+            sessionRef.child('participants/${widget.participantId}');
         final snapshot = await participantRef.child('score').get();
         final int currentScore = snapshot.exists ? (snapshot.value as int) : 0;
         final int updatedScore = currentScore + score;
-
         await participantRef.child('score').set(updatedScore);
       } catch (e) {
         print("Error submitting answer or updating score: $e");
@@ -188,12 +215,14 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
                   children: [
                     Text(
                       'Question ${currentQuestionIndex + 1}/${questions.length}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       question.questionText,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 24),
                     ...question.options.map(
@@ -213,8 +242,10 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: RadioListTile<String>(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                          title: Text(opt, style: const TextStyle(fontSize: 16)),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          title:
+                              Text(opt, style: const TextStyle(fontSize: 16)),
                           value: opt,
                           groupValue: selectedOption,
                           onChanged: isAnswered
@@ -250,21 +281,37 @@ class _PlayerQuizScreenState extends State<PlayerQuizScreen> {
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
-                    if (isAnswered && !isTimerRunning && isCorrectAnswer != null)
+                    if (isAnswered && !isTimerRunning)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
                         child: Row(
                           children: [
                             Icon(
-                              isCorrectAnswer! ? Icons.check_circle : Icons.cancel,
-                              color: isCorrectAnswer! ? Colors.green : Colors.red,
+                              isTimedOut
+                                  ? Icons.hourglass_empty
+                                  : (isCorrectAnswer!
+                                      ? Icons.check_circle
+                                      : Icons.cancel),
+                              color: isTimedOut
+                                  ? Colors.orange
+                                  : (isCorrectAnswer!
+                                      ? Colors.green
+                                      : Colors.red),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              isCorrectAnswer! ? 'Correct!' : 'Incorrect!',
+                              isTimedOut
+                                  ? 'Time\'s up!'
+                                  : (isCorrectAnswer!
+                                      ? 'Correct!'
+                                      : 'Incorrect!'),
                               style: TextStyle(
                                 fontSize: 18,
-                                color: isCorrectAnswer! ? Colors.green : Colors.red,
+                                color: isTimedOut
+                                    ? Colors.orange
+                                    : (isCorrectAnswer!
+                                        ? Colors.green
+                                        : Colors.red),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

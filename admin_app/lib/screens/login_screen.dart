@@ -99,7 +99,9 @@ class _LoginState extends State<Login>{
                                                 MaterialPageRoute(builder: (context) => DashboardScreen()),
                                               );
                                         print("user signed in");} 
-                      else print("error signing in");
+                      else {
+                        print("error signing in");
+                      }
                     },
                     text:'Login',
                   ),

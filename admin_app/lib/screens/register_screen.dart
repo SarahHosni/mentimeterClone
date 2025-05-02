@@ -97,8 +97,11 @@ class _RegisterState extends State<Register>{
                           CustomButton(
                             onPressed: () async {
                               dynamic result = await _auth.registerWithEmailAndPassword( _userNameController.text ,_emailController.text, _passwordController.text);
-                              if(result!=null) print("user registred successfully");
-                              else print("error while registring user");
+                              if(result!=null) {
+                                print("user registred successfully");
+                              } else {
+                                print("error while registring user");
+                              }
                             },
                             text:'Register',
                           ),

@@ -11,7 +11,7 @@ import '../services/auth_service.dart';
 class CreateQuizScreen extends StatefulWidget {
   final QuizModel? quiz; // Optional for edit mode
 
-  CreateQuizScreen({this.quiz});
+  const CreateQuizScreen({super.key, this.quiz});
 
   @override
   _CreateQuizScreenState createState() => _CreateQuizScreenState();
@@ -39,9 +39,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   }
 
   String generateQuizCode() {
-    const _chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    Random _rand = Random();
-    return List.generate(6, (index) => _chars[_rand.nextInt(_chars.length)]).join();
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    Random rand = Random();
+    return List.generate(6, (index) => chars[rand.nextInt(chars.length)]).join();
   }
 
   void _addQuestion() {

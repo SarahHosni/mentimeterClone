@@ -14,6 +14,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
@@ -203,12 +205,15 @@ Widget _buildQuizListView() {
         FutureBuilder<List<QuizModel>>(
           future: _quizzes,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting)
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return CircularProgressIndicator();
-            if (snapshot.hasError)
+            }
+            if (snapshot.hasError) {
               return Text('Error: ${snapshot.error}');
-            if (snapshot.data == null || snapshot.data!.isEmpty)
+            }
+            if (snapshot.data == null || snapshot.data!.isEmpty) {
               return Text('No quizzes created yet.');
+            }
             final quizzes = snapshot.data!;
             return GridView.builder(
               padding: const EdgeInsets.all(8),

@@ -12,13 +12,13 @@ class QuizCard extends StatelessWidget {
   final VoidCallback onStartPresentation;
 
   const QuizCard({
-    Key? key,
+    super.key,
     required this.quiz,
     required this.onDelete,
     required this.onEdited,
     required this.onTap,
     required this.onStartPresentation,
-  }) : super(key: key);
+  });
 
   String _formatDate(DateTime date) {
     return '${_monthName(date.month)} ${date.day}, ${date.year}';

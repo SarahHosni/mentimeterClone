@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class AdminQuizLobbyScreen extends StatelessWidget {
   final String quizCode; // Quiz code passed when navigating to this screen
 
-  AdminQuizLobbyScreen({required this.quizCode});
+  const AdminQuizLobbyScreen({super.key, required this.quizCode});
 
   @override
   Widget build(BuildContext context) {
